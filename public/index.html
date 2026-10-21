@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estate Harness — Zero-Cost Real Estate AI Property Matcher & Viewing Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+  <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="px-2.5 py-1 rounded-md bg-teal-600/20 border border-teal-500/40 text-teal-300 text-xs font-bold">ESTATE HARNESS</span>
+        <h1 class="text-lg font-bold">不動産賃貸・売買の新着物件AI自動マッチング ＆ LINE内見自動追客</h1>
+      </div>
+      <div class="text-xs text-amber-400 font-mono">Cloudflare Workers + D1 + MCP (¥0/mo)</div>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <section class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <h2 class="text-lg font-bold mb-4">新着物件インポート（レインズ/ポータル連携）</h2>
+      <form id="propForm" class="space-y-3">
+        <input id="property_name" required value="ザ・パークレジデンス恵比寿 802号室" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+        <div class="grid grid-cols-2 gap-2">
+          <input id="area" required value="恵比寿" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+          <input id="rent_jpy" type="number" required value="185000" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input id="layout" required value="1LDK (44.5㎡)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+          <input id="walk_minutes" type="number" required value="4" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+        </div>
+        <button type="submit" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-lg text-sm">物件登録 ➔ 希望条件一致顧客へLINE内見打診を自動配信</button>
+      </form>
+    </section>
+    <section class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <h3 class="text-base font-bold mb-3">🏠 新着物件 ＆ AI自動マッチング追客ログ</h3>
+      <div id="propList" class="space-y-3 text-sm"></div>
+    </section>
+  </main>
+  <script>
+    async function load() {
+      const data = await fetch('/api/dashboard').then(r => r.json());
+      document.getElementById('propList').innerHTML = data.listings.map(l => `
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
+          <div class="flex justify-between mb-1"><span class="font-bold">${l.property_name} (${l.layout})</span><span class="text-teal-400 font-bold">¥${Number(l.rent_jpy).toLocaleString()}/月 (マッチ顧客: ${l.matched_buyers_count}名)</span></div>
+          <div class="text-xs bg-slate-900 p-3 rounded border border-teal-500/30 text-teal-200 mt-2">${l.ai_pitch_message}</div>
+        </div>
+      `).join('') || '<div class="text-xs text-slate-500">まだ物件が登録されていません</div>';
+    }
+    document.getElementById('propForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      await fetch('/api/listings/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          property_name: document.getElementById('property_name').value,
+          area: document.getElementById('area').value,
+          rent_jpy: Number(document.getElementById('rent_jpy').value),
+          layout: document.getElementById('layout').value,
+          walk_minutes: Number(document.getElementById('walk_minutes').value),
+        })
+      });
+      await load();
+    });
+    load();
+  </script>
+</body>
+</html>
